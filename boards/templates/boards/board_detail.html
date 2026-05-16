@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ board.title }} – TaskBoard{% endblock %}
+
+{% block main_class %}container-fluid py-3{% endblock %}
+
+{% block content %}
+<!-- Cabecera del tablero -->
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'board_list' %}">Tableros</a></li>
+        <li class="breadcrumb-item active">{{ board.title }}</li>
+      </ol>
+    </nav>
+    <h3 class="fw-bold mb-0">{{ board.title }}</h3>
+    {% if board.description %}
+      <p class="text-muted small mb-0">{{ board.description }}</p>
+    {% endif %}
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <!-- Añadir columna -->
+    <a href="{% url 'tasklist_create' board.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Columna
+    </a>
+    {% if can_edit %}
+      <!-- Gestionar etiquetas -->
+      <a href="{% url 'label_create' board.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-tags me-1"></i>Etiqueta
+      </a>
+      <!-- Editar tablero -->
+      <a href="{% url 'board_update' board.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-pencil me-1"></i>Editar
+      </a>
+      <!-- Eliminar tablero -->
+      <a href="{% url 'board_delete' board.pk %}" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-trash me-1"></i>Eliminar
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Etiquetas del tablero -->
+{% with labels=board.labels.all %}
+  {% if labels %}
+    <div class="mb-3 d-flex flex-wrap gap-1 align-items-center">
+      <small class="text-muted me-1">Etiquetas:</small>
+      {% for label in labels %}
+        <span
+          class="badge rounded-pill"
+          style="background-color: {{ label.color }};"
+          title="{{ label.name }}"
+        >{{ label.name }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── Tablero kanban ── -->
+<div class="kanban-board d-flex gap-3 align-items-start overflow-auto pb-3">
+
+  {% for task_list in task_lists %}
+    <div class="kanban-column flex-shrink-0">
+      <!-- Cabecera de columna -->
+      <div class="kanban-column-header d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-semibold">{{ task_list.title }}</span>
+        <div class="d-flex gap-1">
+          <a
+            href="{% url 'task_create' board.pk task_list.pk %}"
+            class="btn btn-sm btn-link p-0 text-primary"
+            title="Añadir tarea"
+          ><i class="bi bi-plus-circle-fill fs-5"></i></a>
+          <a
+            href="{% url 'tasklist_update' board.pk task_list.pk %}"
+            class="btn btn-sm btn-link p-0 text-muted"
+            title="Editar columna"
+          ><i class="bi bi-pencil"></i></a>
+          <form
+            method="post"
+            action="{% url 'tasklist_delete' board.pk task_list.pk %}"
+            class="d-inline"
+            onsubmit="return confirm('¿Eliminar la columna y todas sus tareas?')"
+          >
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="btn btn-sm btn-link p-0 text-danger"
+              title="Eliminar columna"
+            ><i class="bi bi-x-circle"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Zona de drop: tareas -->
+      <div
+        class="task-list-body"
+        data-list-id="{{ task_list.pk }}"
+      >
+        {% for task in task_list.tasks.all %}
+          <div
+            class="task-card card mb-2 border-0 shadow-sm"
+            draggable="true"
+            data-task-id="{{ task.pk }}"
+            data-list-id="{{ task_list.pk }}"
+          >
+            <div class="card-body p-2">
+              <!-- Etiquetas de la tarea -->
+              {% if task.labels.all %}
+                <div class="mb-1 d-flex flex-wrap gap-1">
+                  {% for label in task.labels.all %}
+                    <span
+                      class="badge rounded-pill"
+                      style="background-color: {{ label.color }}; font-size: 0.65rem;"
+                    >{{ label.name }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              <!-- Título -->
+              <a
+                href="{% url 'task_detail' task.pk %}"
+                class="text-decoration-none text-dark fw-semibold d-block"
+              >{{ task.title }}</a>
+
+              <!-- Meta: prioridad, fecha, asignado -->
+              <div class="d-flex flex-wrap gap-1 mt-2 align-items-center">
+                <span class="badge bg-{{ task.get_priority_badge }} badge-priority">
+                  {{ task.get_priority_display }}
+                </span>
+                {% if task.due_date %}
+                  <span class="badge bg-light text-dark border small">
+                    <i class="bi bi-calendar3 me-1"></i>{{ task.due_date|date:"d/m/Y" }}
+                  </span>
+                {% endif %}
+                {% if task.assigned_to %}
+                  <span class="badge bg-light text-dark border small">
+                    <i class="bi bi-person me-1"></i>{{ task.assigned_to.username }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <!-- Acciones de la tarea -->
+            <div class="card-footer bg-transparent border-0 py-1 px-2 d-flex justify-content-end gap-1">
+              <a href="{% url 'task_update' task.pk %}" class="btn btn-link btn-sm p-0 text-muted" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'task_delete' task.pk %}" class="btn btn-link btn-sm p-0 text-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-muted small text-center py-3 empty-column">Sin tareas</p>
+        {% endfor %}
+      </div>
+
+      <!-- Botón añadir tarea al pie de columna -->
+      <a
+        href="{% url 'task_create' board.pk task_list.pk %}"
+        class="btn btn-outline-secondary btn-sm w-100 mt-1"
+      >
+        <i class="bi bi-plus me-1"></i>Añadir tarea
+      </a>
+    </div>
+  {% empty %}
+    <div class="text-muted p-4">
+      No hay columnas. <a href="{% url 'tasklist_create' board.pk %}">Crea la primera</a>.
+    </div>
+  {% endfor %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/board.js' %}"></script>
+{% endblock %}

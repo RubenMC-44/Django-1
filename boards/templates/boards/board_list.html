@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Tableros – TaskBoard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Mis Tableros</h2>
+  <a href="{% url 'board_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Nuevo tablero
+  </a>
+</div>
+
+{% if boards %}
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for board in boards %}
+      <div class="col">
+        <div class="card h-100 shadow-sm border-0 board-card">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">
+              <a href="{% url 'board_detail' board.pk %}" class="text-decoration-none text-dark">
+                {{ board.title }}
+              </a>
+            </h5>
+            {% if board.description %}
+              <p class="card-text text-muted small">{{ board.description|truncatechars:100 }}</p>
+            {% endif %}
+            <div class="mt-2">
+              <span class="badge bg-secondary">
+                <i class="bi bi-person me-1"></i>{{ board.owner.username }}
+              </span>
+              {% if board.owner == request.user %}
+                <span class="badge bg-success ms-1">Propietario</span>
+              {% else %}
+                <span class="badge bg-info ms-1">Miembro</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
+            <a href="{% url 'board_detail' board.pk %}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye me-1"></i>Abrir
+            </a>
+            {% if board.owner == request.user %}
+              <div class="btn-group">
+                <a href="{% url 'board_update' board.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'board_delete' board.pk %}" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-kanban display-1 text-muted"></i>
+    <p class="mt-3 text-muted fs-5">No tienes ningún tablero todavía.</p>
+    <a href="{% url 'board_create' %}" class="btn btn-primary mt-2">
+      <i class="bi bi-plus-lg me-1"></i>Crear mi primer tablero
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
